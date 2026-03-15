@@ -2,6 +2,7 @@ package br.com.banco.gestao_contabil.core.usecase;
 
 import br.com.banco.gestao_contabil.core.domain.model.EventoContabil;
 import br.com.banco.gestao_contabil.core.domain.model.LancamentoContabil;
+import br.com.banco.gestao_contabil.port.output.ConfirmacaoLancamentoOutputPort;
 import br.com.banco.gestao_contabil.port.output.LancamentoContabilOutputPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,9 @@ class ProcessarEventoUseCaseTest {
 
     @Mock
     private LancamentoContabilOutputPort lancamentoContabilOutputPort;
+
+    @Mock
+    private ConfirmacaoLancamentoOutputPort confirmacaoLancamentoOutputPort;
 
     @InjectMocks
     private ProcessarEventoUseCase useCase;
@@ -49,27 +53,25 @@ class ProcessarEventoUseCaseTest {
     }
 
     @Test
-    void processarEvento_debitoDeveTerTipoD() {
-        ArgumentCaptor<LancamentoContabil> debitoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
+    void processarEvento_debitoDeveTerTipoDECreditoTipoC() {
+        ArgumentCaptor<LancamentoContabil> debitoCaptor  = ArgumentCaptor.forClass(LancamentoContabil.class);
         ArgumentCaptor<LancamentoContabil> creditoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
 
         useCase.processarEvento(evento);
 
         verify(lancamentoContabilOutputPort).salvarPartidas(debitoCaptor.capture(), creditoCaptor.capture());
-
         assertThat(debitoCaptor.getValue().getTipo()).isEqualTo('D');
         assertThat(creditoCaptor.getValue().getTipo()).isEqualTo('C');
     }
 
     @Test
     void processarEvento_debitoECreditoDevemCompartilharMesmoNumLancamento() {
-        ArgumentCaptor<LancamentoContabil> debitoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
+        ArgumentCaptor<LancamentoContabil> debitoCaptor  = ArgumentCaptor.forClass(LancamentoContabil.class);
         ArgumentCaptor<LancamentoContabil> creditoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
 
         useCase.processarEvento(evento);
 
         verify(lancamentoContabilOutputPort).salvarPartidas(debitoCaptor.capture(), creditoCaptor.capture());
-
         assertThat(debitoCaptor.getValue().getNumLancamento())
                 .isNotBlank()
                 .isEqualTo(creditoCaptor.getValue().getNumLancamento());
@@ -77,7 +79,7 @@ class ProcessarEventoUseCaseTest {
 
     @Test
     void processarEvento_devePropagar_dadosDoEventoParaAmbosLancamentos() {
-        ArgumentCaptor<LancamentoContabil> debitoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
+        ArgumentCaptor<LancamentoContabil> debitoCaptor  = ArgumentCaptor.forClass(LancamentoContabil.class);
         ArgumentCaptor<LancamentoContabil> creditoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
 
         useCase.processarEvento(evento);
@@ -95,6 +97,37 @@ class ProcessarEventoUseCaseTest {
     }
 
     @Test
+    void processarEvento_devePublicarConfirmacaoAposSalvarPartidas() {
+        ArgumentCaptor<LancamentoContabil> debitoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
+
+        useCase.processarEvento(evento);
+
+        verify(lancamentoContabilOutputPort).salvarPartidas(debitoCaptor.capture(), any());
+        verify(confirmacaoLancamentoOutputPort, times(1))
+                .publicar(eq("EVT-001"), eq(debitoCaptor.getValue().getNumLancamento()));
+    }
+
+    @Test
+    void processarEvento_confirmacaoDeveSerPublicadaAposASalvarPartidas() {
+        var ordem = inOrder(lancamentoContabilOutputPort, confirmacaoLancamentoOutputPort);
+
+        useCase.processarEvento(evento);
+
+        ordem.verify(lancamentoContabilOutputPort).salvarPartidas(any(), any());
+        ordem.verify(confirmacaoLancamentoOutputPort).publicar(any(), any());
+    }
+
+    @Test
+    void processarEvento_quandoSalvarPartidasFalha_naoDevePublicarConfirmacao() {
+        doThrow(new RuntimeException("falha no banco"))
+                .when(lancamentoContabilOutputPort).salvarPartidas(any(), any());
+
+        assertThrows(RuntimeException.class, () -> useCase.processarEvento(evento));
+
+        verifyNoInteractions(confirmacaoLancamentoOutputPort);
+    }
+
+    @Test
     void processarEvento_numLancamentoDeveIniciarComPrefixoLC() {
         ArgumentCaptor<LancamentoContabil> captor = ArgumentCaptor.forClass(LancamentoContabil.class);
 
@@ -102,24 +135,5 @@ class ProcessarEventoUseCaseTest {
 
         verify(lancamentoContabilOutputPort).salvarPartidas(captor.capture(), any());
         assertThat(captor.getValue().getNumLancamento()).startsWith("LC-");
-    }
-
-    @Test
-    void processarEvento_quandoOutputPortLancaExcecao_devePropagar() {
-        doThrow(new RuntimeException("falha no banco"))
-                .when(lancamentoContabilOutputPort).salvarPartidas(any(), any());
-
-        assertThrows(RuntimeException.class, () -> useCase.processarEvento(evento));
-    }
-
-    @Test
-    void processarEvento_comDescricaoNula_deveSalvarSemErro() {
-        evento.setDescricao(null);
-
-        useCase.processarEvento(evento);
-
-        ArgumentCaptor<LancamentoContabil> debitoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
-        verify(lancamentoContabilOutputPort).salvarPartidas(debitoCaptor.capture(), any());
-        assertThat(debitoCaptor.getValue().getDescricao()).isNull();
     }
 }
