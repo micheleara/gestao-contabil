@@ -1,6 +1,5 @@
 package br.com.banco.gestao_contabil.adapter.input.consumer;
 
-import br.com.banco.gestao_contabil.config.KafkaTopics;
 import br.com.banco.gestao_contabil.core.domain.model.EventoContabil;
 import br.com.banco.gestao_contabil.port.input.ProcessarEventoInputPort;
 import org.slf4j.Logger;
@@ -20,8 +19,8 @@ public class EventoContabilConsumer {
     }
 
     @KafkaListener(
-            topics = KafkaTopics.LANCAMENTO_REQUEST,
-            groupId = "gestao-contabil-group"
+            topics = "${spring.kafka.topics.lancamento-request}",
+            groupId = "${spring.kafka.consumer.group-id}"
     )
     public void onMessage(EventoContabil evento) {
         log.info("Evento recebido: idLancamento={}", evento.getIdLancamento());

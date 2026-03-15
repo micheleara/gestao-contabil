@@ -1,10 +1,10 @@
 package br.com.banco.gestao_contabil.adapter.output.producer;
 
-import br.com.banco.gestao_contabil.config.KafkaTopics;
 import br.com.banco.gestao_contabil.core.domain.model.ConfirmacaoLancamento;
 import br.com.banco.gestao_contabil.port.output.ConfirmacaoLancamentoOutputPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -16,9 +16,13 @@ public class ConfirmacaoProducer implements ConfirmacaoLancamentoOutputPort {
     private static final Logger log = LoggerFactory.getLogger(ConfirmacaoProducer.class);
 
     private final KafkaTemplate<String, ConfirmacaoLancamento> kafkaTemplate;
+    private final String topicResponse;
 
-    public ConfirmacaoProducer(KafkaTemplate<String, ConfirmacaoLancamento> kafkaTemplate) {
+    public ConfirmacaoProducer(
+            KafkaTemplate<String, ConfirmacaoLancamento> kafkaTemplate,
+            @Value("${spring.kafka.topics.lancamento-response}") String topicResponse) {
         this.kafkaTemplate = kafkaTemplate;
+        this.topicResponse = topicResponse;
     }
 
     @Override
@@ -29,7 +33,7 @@ public class ConfirmacaoProducer implements ConfirmacaoLancamentoOutputPort {
         confirmacao.setStatus("PROCESSADO");
         confirmacao.setProcessadoEm(LocalDateTime.now());
 
-        kafkaTemplate.send(KafkaTopics.LANCAMENTO_RESPONSE, idLancamento, confirmacao);
+        kafkaTemplate.send(topicResponse, idLancamento, confirmacao);
         log.info("Confirmação publicada: idLancamento={}", idLancamento);
     }
 }
