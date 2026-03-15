@@ -1,0 +1,16 @@
+package br.com.banco.gestao_contabil.config;
+
+import br.com.banco.gestao_contabil.core.usecase.ProcessarEventoUseCase;
+import br.com.banco.gestao_contabil.port.input.ProcessarEventoInputPort;
+import br.com.banco.gestao_contabil.port.output.LancamentoContabilOutputPort;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class UseCaseConfig {
+
+    @Bean
+    public ProcessarEventoInputPort processarEventoUseCase(LancamentoContabilOutputPort outputPort) {
+        return new ProcessarEventoUseCase(outputPort);
+    }
+}
