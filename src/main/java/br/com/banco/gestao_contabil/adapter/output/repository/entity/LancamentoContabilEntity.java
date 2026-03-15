@@ -1,4 +1,4 @@
-package br.com.banco.gestao_contabil.domain.model;
+package br.com.banco.gestao_contabil.adapter.output.repository.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class LancamentoContabil {
+public class LancamentoContabilEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +24,7 @@ public class LancamentoContabil {
     private String numLancamento;
 
     @Column(name = "data_lancamento", nullable = false)
-    private LocalDate dataLancamento = LocalDate.now();
+    private LocalDate dataLancamento;
 
     @Column(name = "num_conta", nullable = false, length = 20)
     private String numConta;
@@ -48,5 +48,5 @@ public class LancamentoContabil {
     private BigDecimal saldoPosterior;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 }

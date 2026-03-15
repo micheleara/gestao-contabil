@@ -1,4 +1,4 @@
-package br.com.banco.gestao_contabil.application.dto;
+package br.com.banco.gestao_contabil.adapter.input.controller.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-public class EventoContabil {
+public class EventoContabilRequest {
 
     @NotBlank
     private String idLancamento;
