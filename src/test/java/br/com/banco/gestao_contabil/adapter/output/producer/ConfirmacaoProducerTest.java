@@ -1,11 +1,10 @@
 package br.com.banco.gestao_contabil.adapter.output.producer;
 
-import br.com.banco.gestao_contabil.config.KafkaTopics;
 import br.com.banco.gestao_contabil.core.domain.model.ConfirmacaoLancamento;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -17,18 +16,24 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class ConfirmacaoProducerTest {
 
+    private static final String TOPIC_RESPONSE = "encargos.contabil.lancamento.response";
+
     @Mock
     private KafkaTemplate<String, ConfirmacaoLancamento> kafkaTemplate;
 
-    @InjectMocks
     private ConfirmacaoProducer producer;
+
+    @BeforeEach
+    void setUp() {
+        producer = new ConfirmacaoProducer(kafkaTemplate, TOPIC_RESPONSE);
+    }
 
     @Test
     void publicar_deveEnviarMensagemNoTopicoDeResponse() {
         producer.publicar("EVT-001", "LC-001");
 
         verify(kafkaTemplate).send(
-                eq(KafkaTopics.LANCAMENTO_RESPONSE),
+                eq(TOPIC_RESPONSE),
                 eq("EVT-001"),
                 any(ConfirmacaoLancamento.class));
     }

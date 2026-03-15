@@ -29,6 +29,9 @@ spring:
     baseline-on-migrate: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    topics:
+      lancamento-request: encargos.contabil.lancamento.request
+      lancamento-response: encargos.contabil.lancamento.response
     consumer:
       group-id: gestao-contabil-group
       auto-offset-reset: earliest
