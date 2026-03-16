@@ -128,12 +128,12 @@ class ProcessarEventoUseCaseTest {
     }
 
     @Test
-    void processarEvento_numLancamentoDeveIniciarComPrefixoLC() {
+    void processarEvento_numLancamentoDeveSerOIdDoEventoKafka() {
         ArgumentCaptor<LancamentoContabil> captor = ArgumentCaptor.forClass(LancamentoContabil.class);
 
         useCase.processarEvento(evento);
 
         verify(lancamentoContabilOutputPort).salvarPartidas(captor.capture(), any());
-        assertThat(captor.getValue().getNumLancamento()).startsWith("LC-");
+        assertThat(captor.getValue().getNumLancamento()).isEqualTo(evento.getIdLancamento());
     }
 }

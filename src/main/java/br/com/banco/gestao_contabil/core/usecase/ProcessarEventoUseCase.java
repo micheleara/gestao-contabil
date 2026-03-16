@@ -6,8 +6,6 @@ import br.com.banco.gestao_contabil.port.input.ProcessarEventoInputPort;
 import br.com.banco.gestao_contabil.port.output.ConfirmacaoLancamentoOutputPort;
 import br.com.banco.gestao_contabil.port.output.LancamentoContabilOutputPort;
 
-import java.util.UUID;
-
 public class ProcessarEventoUseCase implements ProcessarEventoInputPort {
 
     private final LancamentoContabilOutputPort lancamentoContabilOutputPort;
@@ -21,7 +19,7 @@ public class ProcessarEventoUseCase implements ProcessarEventoInputPort {
 
     @Override
     public void processarEvento(EventoContabil evento) {
-        String numLancamento = gerarNumLancamento();
+        String numLancamento = evento.getIdLancamento();
 
         LancamentoContabil debito  = buildLancamento(numLancamento, evento, 'D');
         LancamentoContabil credito = buildLancamento(numLancamento, evento, 'C');
@@ -41,10 +39,5 @@ public class ProcessarEventoUseCase implements ProcessarEventoInputPort {
         lancamento.setSaldoAnterior(evento.getSaldoAnterior());
         lancamento.setSaldoPosterior(evento.getSaldoPosterior());
         return lancamento;
-    }
-
-    private String gerarNumLancamento() {
-        return "LC-" + java.time.Instant.now().toEpochMilli()
-                + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 }
