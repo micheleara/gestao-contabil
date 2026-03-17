@@ -9,6 +9,7 @@ interface LancamentoContabilJpaRepository extends JpaRepository<LancamentoContab
 
     boolean existsByNumLancamento(String numLancamento);
 
+
     List<LancamentoContabilEntity> findByNumLancamento(String numLancamento);
 
     List<LancamentoContabilEntity> findByNumConta(String numConta);

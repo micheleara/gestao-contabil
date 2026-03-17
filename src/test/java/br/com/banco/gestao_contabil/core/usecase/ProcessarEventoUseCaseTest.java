@@ -5,11 +5,11 @@ import br.com.banco.gestao_contabil.core.domain.model.LancamentoContabil;
 import br.com.banco.gestao_contabil.core.domain.model.TipoLancamento;
 import br.com.banco.gestao_contabil.port.output.ConfirmacaoLancamentoOutputPort;
 import br.com.banco.gestao_contabil.port.output.LancamentoContabilOutputPort;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,13 +29,16 @@ class ProcessarEventoUseCaseTest {
     @Mock
     private ConfirmacaoLancamentoOutputPort confirmacaoLancamentoOutputPort;
 
-    @InjectMocks
+    private SimpleMeterRegistry meterRegistry;
     private ProcessarEventoUseCase useCase;
 
     private EventoContabil evento;
 
     @BeforeEach
     void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
+        useCase = new ProcessarEventoUseCase(lancamentoContabilOutputPort, confirmacaoLancamentoOutputPort, meterRegistry);
+
         evento = new EventoContabil();
         evento.setIdLancamento("EVT-001");
         evento.setNumConta("1234-5");
@@ -150,5 +153,29 @@ class ProcessarEventoUseCaseTest {
         verify(lancamentoContabilOutputPort).existsByNumLancamento("EVT-001");
         verifyNoMoreInteractions(lancamentoContabilOutputPort);
         verifyNoInteractions(confirmacaoLancamentoOutputPort);
+    }
+
+    @Test
+    void processarEvento_deveIncrementarContadorDeProcessados() {
+        useCase.processarEvento(evento);
+
+        assertThat(meterRegistry.counter("lancamento.eventos.processados").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void processarEvento_quandoDuplicado_deveIncrementarContadorDeDuplicados() {
+        when(lancamentoContabilOutputPort.existsByNumLancamento("EVT-001")).thenReturn(true);
+
+        useCase.processarEvento(evento);
+
+        assertThat(meterRegistry.counter("lancamento.eventos.duplicados").count()).isEqualTo(1.0);
+        assertThat(meterRegistry.counter("lancamento.eventos.processados").count()).isEqualTo(0.0);
+    }
+
+    @Test
+    void processarEvento_deveRegistrarDuracaoDoProcessamento() {
+        useCase.processarEvento(evento);
+
+        assertThat(meterRegistry.timer("lancamento.processamento.duracao").count()).isEqualTo(1L);
     }
 }

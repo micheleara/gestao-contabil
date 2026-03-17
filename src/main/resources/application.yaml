@@ -1,5 +1,17 @@
 server:
   port: 8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics, prometheus, info
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
 spring:
   config:
     import: optional:file:.env[.properties]
