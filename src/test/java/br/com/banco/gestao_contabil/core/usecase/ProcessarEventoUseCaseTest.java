@@ -2,6 +2,7 @@ package br.com.banco.gestao_contabil.core.usecase;
 
 import br.com.banco.gestao_contabil.core.domain.model.EventoContabil;
 import br.com.banco.gestao_contabil.core.domain.model.LancamentoContabil;
+import br.com.banco.gestao_contabil.core.domain.model.TipoLancamento;
 import br.com.banco.gestao_contabil.port.output.ConfirmacaoLancamentoOutputPort;
 import br.com.banco.gestao_contabil.port.output.LancamentoContabilOutputPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,8 @@ class ProcessarEventoUseCaseTest {
         evento.setDescricao("Pagamento de fornecedor");
         evento.setSaldoAnterior(new BigDecimal("1000.00"));
         evento.setSaldoPosterior(new BigDecimal("500.00"));
+
+        when(lancamentoContabilOutputPort.existsByNumLancamento(any())).thenReturn(false);
     }
 
     @Test
@@ -53,15 +56,15 @@ class ProcessarEventoUseCaseTest {
     }
 
     @Test
-    void processarEvento_debitoDeveTerTipoDECreditoTipoC() {
+    void processarEvento_debitoDeveTerTipoDebitoECreditoTipoCredito() {
         ArgumentCaptor<LancamentoContabil> debitoCaptor  = ArgumentCaptor.forClass(LancamentoContabil.class);
         ArgumentCaptor<LancamentoContabil> creditoCaptor = ArgumentCaptor.forClass(LancamentoContabil.class);
 
         useCase.processarEvento(evento);
 
         verify(lancamentoContabilOutputPort).salvarPartidas(debitoCaptor.capture(), creditoCaptor.capture());
-        assertThat(debitoCaptor.getValue().getTipo()).isEqualTo('D');
-        assertThat(creditoCaptor.getValue().getTipo()).isEqualTo('C');
+        assertThat(debitoCaptor.getValue().getTipo()).isEqualTo(TipoLancamento.DEBITO);
+        assertThat(creditoCaptor.getValue().getTipo()).isEqualTo(TipoLancamento.CREDITO);
     }
 
     @Test
@@ -93,6 +96,7 @@ class ProcessarEventoUseCaseTest {
             assertThat(l.getIdLancamentoOrigem()).isEqualTo("EVT-001");
             assertThat(l.getSaldoAnterior()).isEqualByComparingTo("1000.00");
             assertThat(l.getSaldoPosterior()).isEqualByComparingTo("500.00");
+            assertThat(l.getDataLancamento()).isNotNull();
         }
     }
 
@@ -128,12 +132,23 @@ class ProcessarEventoUseCaseTest {
     }
 
     @Test
-    void processarEvento_numLancamentoDeveIniciarComPrefixoLC() {
+    void processarEvento_numLancamentoDeveSerOIdDoEventoKafka() {
         ArgumentCaptor<LancamentoContabil> captor = ArgumentCaptor.forClass(LancamentoContabil.class);
 
         useCase.processarEvento(evento);
 
         verify(lancamentoContabilOutputPort).salvarPartidas(captor.capture(), any());
-        assertThat(captor.getValue().getNumLancamento()).startsWith("LC-");
+        assertThat(captor.getValue().getNumLancamento()).isEqualTo(evento.getIdLancamento());
+    }
+
+    @Test
+    void processarEvento_quandoEventoJaProcessado_naoDeveSalvarNemPublicar() {
+        when(lancamentoContabilOutputPort.existsByNumLancamento("EVT-001")).thenReturn(true);
+
+        useCase.processarEvento(evento);
+
+        verify(lancamentoContabilOutputPort).existsByNumLancamento("EVT-001");
+        verifyNoMoreInteractions(lancamentoContabilOutputPort);
+        verifyNoInteractions(confirmacaoLancamentoOutputPort);
     }
 }

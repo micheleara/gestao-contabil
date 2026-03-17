@@ -1,5 +1,6 @@
 package br.com.banco.gestao_contabil.adapter.input.consumer;
 
+import br.com.banco.gestao_contabil.adapter.input.consumer.dto.EventoContabilMessage;
 import br.com.banco.gestao_contabil.core.domain.model.EventoContabil;
 import br.com.banco.gestao_contabil.port.input.ProcessarEventoInputPort;
 import org.slf4j.Logger;
@@ -22,14 +23,25 @@ public class EventoContabilConsumer {
             topics = "${spring.kafka.topics.lancamento-request}",
             groupId = "${spring.kafka.consumer.group-id}"
     )
-    public void onMessage(EventoContabil evento) {
-        log.info("Evento recebido: idLancamento={}", evento.getIdLancamento());
+    public void onMessage(EventoContabilMessage message) {
+        log.info("Evento recebido: idLancamento={}", message.getIdLancamento());
         try {
-            processarEventoInputPort.processarEvento(evento);
-            log.info("Evento processado com sucesso: idLancamento={}", evento.getIdLancamento());
+            processarEventoInputPort.processarEvento(toEvento(message));
+            log.info("Evento processado com sucesso: idLancamento={}", message.getIdLancamento());
         } catch (Exception e) {
-            log.error("Erro ao processar evento: idLancamento={}", evento.getIdLancamento(), e);
+            log.error("Erro ao processar evento: idLancamento={}", message.getIdLancamento(), e);
             throw e;
         }
+    }
+
+    private EventoContabil toEvento(EventoContabilMessage message) {
+        EventoContabil evento = new EventoContabil();
+        evento.setIdLancamento(message.getIdLancamento());
+        evento.setNumConta(message.getNumConta());
+        evento.setValor(message.getValor());
+        evento.setDescricao(message.getDescricao());
+        evento.setSaldoAnterior(message.getSaldoAnterior());
+        evento.setSaldoPosterior(message.getSaldoPosterior());
+        return evento;
     }
 }

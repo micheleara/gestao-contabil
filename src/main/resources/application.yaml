@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 8084
 spring:
   config:
     import: optional:file:.env[.properties]
@@ -32,14 +32,15 @@ spring:
     topics:
       lancamento-request: encargos.contabil.lancamento.request
       lancamento-response: encargos.contabil.lancamento.response
+      lancamento-request-dlt: encargos.contabil.lancamento.request.dlt
     consumer:
       group-id: gestao-contabil-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
-        spring.json.value.default.type: br.com.banco.gestao_contabil.core.domain.model.EventoContabil
+        spring.json.trusted.packages: "br.com.banco.gestao_contabil.adapter.input.consumer.dto"
+        spring.json.value.default.type: br.com.banco.gestao_contabil.adapter.input.consumer.dto.EventoContabilMessage
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

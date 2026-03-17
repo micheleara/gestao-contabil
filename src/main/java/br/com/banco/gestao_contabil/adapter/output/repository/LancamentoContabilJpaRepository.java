@@ -7,6 +7,8 @@ import java.util.List;
 
 interface LancamentoContabilJpaRepository extends JpaRepository<LancamentoContabilEntity, Long> {
 
+    boolean existsByNumLancamento(String numLancamento);
+
     List<LancamentoContabilEntity> findByNumLancamento(String numLancamento);
 
     List<LancamentoContabilEntity> findByNumConta(String numConta);

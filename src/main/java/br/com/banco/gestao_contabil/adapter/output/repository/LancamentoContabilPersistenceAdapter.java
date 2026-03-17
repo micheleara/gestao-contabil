@@ -2,10 +2,12 @@ package br.com.banco.gestao_contabil.adapter.output.repository;
 
 import br.com.banco.gestao_contabil.adapter.output.repository.entity.LancamentoContabilEntity;
 import br.com.banco.gestao_contabil.core.domain.model.LancamentoContabil;
+import br.com.banco.gestao_contabil.core.domain.model.TipoLancamento;
 import br.com.banco.gestao_contabil.port.output.LancamentoContabilOutputPort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -18,10 +20,14 @@ public class LancamentoContabilPersistenceAdapter implements LancamentoContabilO
     }
 
     @Override
+    public boolean existsByNumLancamento(String numLancamento) {
+        return jpaRepository.existsByNumLancamento(numLancamento);
+    }
+
+    @Override
     @Transactional
     public void salvarPartidas(LancamentoContabil debito, LancamentoContabil credito) {
-        jpaRepository.save(toEntity(debito));
-        jpaRepository.save(toEntity(credito));
+        jpaRepository.saveAll(List.of(toEntity(debito), toEntity(credito)));
     }
 
     @Override
@@ -43,13 +49,13 @@ public class LancamentoContabilPersistenceAdapter implements LancamentoContabilO
         entity.setNumLancamento(domain.getNumLancamento());
         entity.setDataLancamento(domain.getDataLancamento());
         entity.setNumConta(domain.getNumConta());
-        entity.setTipo(domain.getTipo());
+        entity.setTipo(domain.getTipo().getCodigo());
         entity.setValor(domain.getValor());
         entity.setDescricao(domain.getDescricao());
         entity.setIdLancamentoOrigem(domain.getIdLancamentoOrigem());
         entity.setSaldoAnterior(domain.getSaldoAnterior());
         entity.setSaldoPosterior(domain.getSaldoPosterior());
-        entity.setCreatedAt(domain.getCreatedAt());
+        entity.setCreatedAt(LocalDateTime.now());
         return entity;
     }
 
@@ -59,7 +65,7 @@ public class LancamentoContabilPersistenceAdapter implements LancamentoContabilO
         domain.setNumLancamento(entity.getNumLancamento());
         domain.setDataLancamento(entity.getDataLancamento());
         domain.setNumConta(entity.getNumConta());
-        domain.setTipo(entity.getTipo());
+        domain.setTipo(entity.getTipo() == 'D' ? TipoLancamento.DEBITO : TipoLancamento.CREDITO);
         domain.setValor(entity.getValor());
         domain.setDescricao(entity.getDescricao());
         domain.setIdLancamentoOrigem(entity.getIdLancamentoOrigem());
