@@ -3,10 +3,11 @@ package br.com.banco.gestao_contabil.adapter.input.consumer;
 import br.com.banco.gestao_contabil.adapter.input.consumer.dto.EventoContabilMessage;
 import br.com.banco.gestao_contabil.core.domain.model.EventoContabil;
 import br.com.banco.gestao_contabil.port.input.ProcessarEventoInputPort;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,8 +23,14 @@ class EventoContabilConsumerTest {
     @Mock
     private ProcessarEventoInputPort processarEventoInputPort;
 
-    @InjectMocks
+    private SimpleMeterRegistry meterRegistry;
     private EventoContabilConsumer consumer;
+
+    @BeforeEach
+    void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
+        consumer = new EventoContabilConsumer(processarEventoInputPort, meterRegistry);
+    }
 
     @Test
     void onMessage_deveAcionarInputPortComDadosDaMensagem() {
@@ -51,6 +58,16 @@ class EventoContabilConsumerTest {
         assertThrows(RuntimeException.class, () -> consumer.onMessage(message));
 
         verify(processarEventoInputPort, times(1)).processarEvento(any());
+    }
+
+    @Test
+    void onMessage_quandoFalha_deveIncrementarContadorDeErros() {
+        doThrow(new RuntimeException("falha"))
+                .when(processarEventoInputPort).processarEvento(any());
+
+        assertThrows(RuntimeException.class, () -> consumer.onMessage(message()));
+
+        assertThat(meterRegistry.counter("lancamento.eventos.erro").count()).isEqualTo(1.0);
     }
 
     private EventoContabilMessage message() {

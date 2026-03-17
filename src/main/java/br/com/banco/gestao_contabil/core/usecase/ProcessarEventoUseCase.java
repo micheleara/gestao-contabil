@@ -6,6 +6,9 @@ import br.com.banco.gestao_contabil.core.domain.model.TipoLancamento;
 import br.com.banco.gestao_contabil.port.input.ProcessarEventoInputPort;
 import br.com.banco.gestao_contabil.port.output.ConfirmacaoLancamentoOutputPort;
 import br.com.banco.gestao_contabil.port.output.LancamentoContabilOutputPort;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,10 +21,27 @@ public class ProcessarEventoUseCase implements ProcessarEventoInputPort {
     private final LancamentoContabilOutputPort lancamentoContabilOutputPort;
     private final ConfirmacaoLancamentoOutputPort confirmacaoLancamentoOutputPort;
 
+    private final Counter eventosProcessados;
+    private final Counter eventosDuplicados;
+    private final Timer duracaoProcessamento;
+
     public ProcessarEventoUseCase(LancamentoContabilOutputPort lancamentoContabilOutputPort,
-                                   ConfirmacaoLancamentoOutputPort confirmacaoLancamentoOutputPort) {
+                                   ConfirmacaoLancamentoOutputPort confirmacaoLancamentoOutputPort,
+                                   MeterRegistry meterRegistry) {
         this.lancamentoContabilOutputPort = lancamentoContabilOutputPort;
         this.confirmacaoLancamentoOutputPort = confirmacaoLancamentoOutputPort;
+
+        this.eventosProcessados = Counter.builder("lancamento.eventos.processados")
+                .description("Total de eventos de lançamento processados com sucesso")
+                .register(meterRegistry);
+
+        this.eventosDuplicados = Counter.builder("lancamento.eventos.duplicados")
+                .description("Total de eventos ignorados por já terem sido processados")
+                .register(meterRegistry);
+
+        this.duracaoProcessamento = Timer.builder("lancamento.processamento.duracao")
+                .description("Tempo de processamento de um evento de lançamento")
+                .register(meterRegistry);
     }
 
     @Override
@@ -30,14 +50,19 @@ public class ProcessarEventoUseCase implements ProcessarEventoInputPort {
 
         if (lancamentoContabilOutputPort.existsByNumLancamento(numLancamento)) {
             log.warn("Evento já processado, ignorando duplicata: idLancamento={}", numLancamento);
+            eventosDuplicados.increment();
             return;
         }
 
-        LancamentoContabil debito  = buildLancamento(numLancamento, evento, TipoLancamento.DEBITO);
-        LancamentoContabil credito = buildLancamento(numLancamento, evento, TipoLancamento.CREDITO);
+        duracaoProcessamento.record(() -> {
+            LancamentoContabil debito  = buildLancamento(numLancamento, evento, TipoLancamento.DEBITO);
+            LancamentoContabil credito = buildLancamento(numLancamento, evento, TipoLancamento.CREDITO);
 
-        lancamentoContabilOutputPort.salvarPartidas(debito, credito);
-        confirmacaoLancamentoOutputPort.publicar(evento.getIdLancamento(), numLancamento);
+            lancamentoContabilOutputPort.salvarPartidas(debito, credito);
+            confirmacaoLancamentoOutputPort.publicar(evento.getIdLancamento(), numLancamento);
+        });
+
+        eventosProcessados.increment();
     }
 
     private LancamentoContabil buildLancamento(String numLancamento, EventoContabil evento, TipoLancamento tipo) {
