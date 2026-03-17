@@ -10,7 +10,7 @@ public class LancamentoContabil {
     private String numLancamento;
     private LocalDate dataLancamento;
     private String numConta;
-    private Character tipo;
+    private TipoLancamento tipo;
     private BigDecimal valor;
     private String descricao;
     private String idLancamentoOrigem;
@@ -18,10 +18,7 @@ public class LancamentoContabil {
     private BigDecimal saldoPosterior;
     private LocalDateTime createdAt;
 
-    public LancamentoContabil() {
-        this.dataLancamento = LocalDate.now();
-        this.createdAt = LocalDateTime.now();
-    }
+    public LancamentoContabil() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -35,8 +32,8 @@ public class LancamentoContabil {
     public String getNumConta() { return numConta; }
     public void setNumConta(String numConta) { this.numConta = numConta; }
 
-    public Character getTipo() { return tipo; }
-    public void setTipo(Character tipo) { this.tipo = tipo; }
+    public TipoLancamento getTipo() { return tipo; }
+    public void setTipo(TipoLancamento tipo) { this.tipo = tipo; }
 
     public BigDecimal getValor() { return valor; }
     public void setValor(BigDecimal valor) { this.valor = valor; }

@@ -2,6 +2,7 @@ package br.com.banco.gestao_contabil.adapter.output.repository;
 
 import br.com.banco.gestao_contabil.adapter.output.repository.entity.LancamentoContabilEntity;
 import br.com.banco.gestao_contabil.core.domain.model.LancamentoContabil;
+import br.com.banco.gestao_contabil.core.domain.model.TipoLancamento;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -28,37 +29,46 @@ class LancamentoContabilPersistenceAdapterTest {
     private LancamentoContabilPersistenceAdapter adapter;
 
     @Test
-    void salvarPartidas_deveSalvarDebitoECreditoNoRepositorio() {
-        LancamentoContabil debito = domainLancamento('D');
-        LancamentoContabil credito = domainLancamento('C');
+    void existsByNumLancamento_deveDelegar_aoRepositorio() {
+        when(jpaRepository.existsByNumLancamento("EVT-001")).thenReturn(true);
+
+        assertThat(adapter.existsByNumLancamento("EVT-001")).isTrue();
+        assertThat(adapter.existsByNumLancamento("OUTRO")).isFalse();
+    }
+
+    @Test
+    void salvarPartidas_deveSalvarDebitoECreditoViaSaveAll() {
+        LancamentoContabil debito  = domainLancamento(TipoLancamento.DEBITO);
+        LancamentoContabil credito = domainLancamento(TipoLancamento.CREDITO);
 
         adapter.salvarPartidas(debito, credito);
 
-        verify(jpaRepository, times(2)).save(any(LancamentoContabilEntity.class));
+        verify(jpaRepository, times(1)).saveAll(any(List.class));
+        verify(jpaRepository, never()).save(any());
     }
 
     @Test
     void salvarPartidas_deveMappearTipoCorretamente() {
-        LancamentoContabil debito = domainLancamento('D');
-        LancamentoContabil credito = domainLancamento('C');
-        ArgumentCaptor<LancamentoContabilEntity> captor = ArgumentCaptor.forClass(LancamentoContabilEntity.class);
+        LancamentoContabil debito  = domainLancamento(TipoLancamento.DEBITO);
+        LancamentoContabil credito = domainLancamento(TipoLancamento.CREDITO);
 
+        ArgumentCaptor<List<LancamentoContabilEntity>> captor = ArgumentCaptor.forClass(List.class);
         adapter.salvarPartidas(debito, credito);
 
-        verify(jpaRepository, times(2)).save(captor.capture());
-        assertThat(captor.getAllValues()).extracting(LancamentoContabilEntity::getTipo)
+        verify(jpaRepository).saveAll(captor.capture());
+        assertThat(captor.getValue()).extracting(LancamentoContabilEntity::getTipo)
                 .containsExactly('D', 'C');
     }
 
     @Test
     void salvarPartidas_deveMappearTodosCamposDoDominio() {
-        LancamentoContabil debito = domainLancamento('D');
-        ArgumentCaptor<LancamentoContabilEntity> captor = ArgumentCaptor.forClass(LancamentoContabilEntity.class);
+        LancamentoContabil debito = domainLancamento(TipoLancamento.DEBITO);
+        ArgumentCaptor<List<LancamentoContabilEntity>> captor = ArgumentCaptor.forClass(List.class);
 
-        adapter.salvarPartidas(debito, domainLancamento('C'));
+        adapter.salvarPartidas(debito, domainLancamento(TipoLancamento.CREDITO));
 
-        verify(jpaRepository, times(2)).save(captor.capture());
-        LancamentoContabilEntity entity = captor.getAllValues().get(0);
+        verify(jpaRepository).saveAll(captor.capture());
+        LancamentoContabilEntity entity = captor.getValue().get(0);
 
         assertThat(entity.getNumLancamento()).isEqualTo("LC-001");
         assertThat(entity.getNumConta()).isEqualTo("1234-5");
@@ -66,6 +76,7 @@ class LancamentoContabilPersistenceAdapterTest {
         assertThat(entity.getSaldoAnterior()).isEqualByComparingTo("1000.00");
         assertThat(entity.getSaldoPosterior()).isEqualByComparingTo("500.00");
         assertThat(entity.getIdLancamentoOrigem()).isEqualTo("EVT-001");
+        assertThat(entity.getCreatedAt()).isNotNull();
     }
 
     @Test
@@ -78,6 +89,8 @@ class LancamentoContabilPersistenceAdapterTest {
         assertThat(resultado).hasSize(2);
         assertThat(resultado).extracting(LancamentoContabil::getNumLancamento)
                 .containsOnly("LC-001");
+        assertThat(resultado).extracting(LancamentoContabil::getTipo)
+                .containsExactly(TipoLancamento.DEBITO, TipoLancamento.CREDITO);
     }
 
     @Test
@@ -105,7 +118,7 @@ class LancamentoContabilPersistenceAdapterTest {
         assertThat(adapter.buscarPorNumConta("9999-9")).isEmpty();
     }
 
-    private LancamentoContabil domainLancamento(char tipo) {
+    private LancamentoContabil domainLancamento(TipoLancamento tipo) {
         LancamentoContabil l = new LancamentoContabil();
         l.setNumLancamento("LC-001");
         l.setNumConta("1234-5");
@@ -115,7 +128,6 @@ class LancamentoContabilPersistenceAdapterTest {
         l.setSaldoPosterior(new BigDecimal("500.00"));
         l.setIdLancamentoOrigem("EVT-001");
         l.setDataLancamento(LocalDate.now());
-        l.setCreatedAt(LocalDateTime.now());
         return l;
     }
 

@@ -6,7 +6,7 @@ public class ConfirmacaoLancamento {
 
     private String idLancamento;
     private String numLancamento;
-    private String status;
+    private StatusConfirmacao status;
     private LocalDateTime processadoEm;
 
     public ConfirmacaoLancamento() {}
@@ -17,8 +17,8 @@ public class ConfirmacaoLancamento {
     public String getNumLancamento() { return numLancamento; }
     public void setNumLancamento(String numLancamento) { this.numLancamento = numLancamento; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public StatusConfirmacao getStatus() { return status; }
+    public void setStatus(StatusConfirmacao status) { this.status = status; }
 
     public LocalDateTime getProcessadoEm() { return processadoEm; }
     public void setProcessadoEm(LocalDateTime processadoEm) { this.processadoEm = processadoEm; }

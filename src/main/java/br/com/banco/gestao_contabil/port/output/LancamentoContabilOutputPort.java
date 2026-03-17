@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface LancamentoContabilOutputPort {
 
+    boolean existsByNumLancamento(String numLancamento);
+
     void salvarPartidas(LancamentoContabil debito, LancamentoContabil credito);
 
     List<LancamentoContabil> buscarPorNumLancamento(String numLancamento);
